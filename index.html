@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Neil · Finance</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #080B12;
+    --surface: #0E1220;
+    --surface2: #141826;
+    --border: #1E2438;
+    --blue: #3D8EFF;
+    --green: #00E5A0;
+    --amber: #FFB547;
+    --red: #FF5C7A;
+    --purple: #A78BFA;
+    --text: #EEF0F8;
+    --muted: #5A607A;
+    --light: #9DA3BE;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── animated noise grain overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 999; opacity: 0.35;
+  }
+
+  /* ── glowing orbs ── */
+  .orb {
+    position: fixed; border-radius: 50%;
+    filter: blur(80px); pointer-events: none; z-index: 0;
+    animation: drift 12s ease-in-out infinite alternate;
+  }
+  .orb-1 { width: 280px; height: 280px; background: rgba(61,142,255,0.12); top: -60px; right: -60px; }
+  .orb-2 { width: 220px; height: 220px; background: rgba(0,229,160,0.09); bottom: 10%; left: -80px; animation-delay: -4s; }
+  .orb-3 { width: 180px; height: 180px; background: rgba(167,139,250,0.08); top: 50%; right: -40px; animation-delay: -8s; }
+
+  @keyframes drift {
+    0%   { transform: translate(0,0) scale(1); }
+    100% { transform: translate(20px, 30px) scale(1.1); }
+  }
+
+  /* ── layout ── */
+  .page { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 0 16px 32px; }
+
+  /* ── header ── */
+  .header {
+    padding: 28px 0 20px;
+    display: flex; flex-direction: column; gap: 4px;
+    animation: fadeUp 0.6s ease both;
+  }
+  .header-label {
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 0.2em;
+    color: var(--muted); text-transform: uppercase;
+  }
+  .header-title {
+    font-size: 28px; font-weight: 800; line-height: 1.1;
+    background: linear-gradient(135deg, #fff 0%, var(--blue) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header-sub { font-size: 12px; color: var(--muted); font-family: var(--font-mono); margin-top: 2px; }
+
+  /* ── KPI strip ── */
+  .kpi-strip {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px; margin-bottom: 20px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px 12px 12px;
+    position: relative; overflow: hidden;
+  }
+  .kpi::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    border-radius: 14px 14px 0 0;
+  }
+  .kpi.salary::before  { background: var(--blue); }
+  .kpi.expenses::before{ background: var(--amber); }
+  .kpi.savings::before { background: var(--green); }
+
+  .kpi-label {
+    font-family: var(--font-mono); font-size: 8px;
+    letter-spacing: 0.15em; color: var(--muted);
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .kpi-value {
+    font-size: 15px; font-weight: 700; line-height: 1;
+    white-space: nowrap;
+  }
+  .kpi.salary  .kpi-value { color: var(--blue); }
+  .kpi.expenses .kpi-value { color: var(--amber); }
+  .kpi.savings  .kpi-value { color: var(--green); }
+  .kpi-sub { font-family: var(--font-mono); font-size: 8px; color: var(--muted); margin-top: 4px; }
+
+  /* ── section headers ── */
+  .section-head {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px; margin-top: 24px;
+    animation: fadeUp 0.6s 0.15s ease both;
+  }
+  .section-head-line { flex: 1; height: 1px; background: var(--border); }
+  .section-head-label {
+    font-size: 10px; letter-spacing: 0.18em;
+    color: var(--muted); text-transform: uppercase;
+    font-family: var(--font-mono);
+  }
+
+  /* ── expense table ── */
+  .expense-table {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+  .expense-row {
+    display: flex; align-items: center;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    position: relative;
+  }
+  .expense-row:last-child { border-bottom: none; }
+  .expense-row:hover { background: var(--surface2); }
+
+  .expense-row.total {
+    background: rgba(255,181,71,0.07);
+    border-top: 1px solid rgba(255,181,71,0.3);
+  }
+  .expense-row.savings-row {
+    background: rgba(0,229,160,0.07);
+    border-top: 1px solid rgba(0,229,160,0.3);
+  }
+
+  .expense-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0; margin-right: 11px;
+  }
+  .expense-name {
+    flex: 1; font-size: 13px; color: var(--light);
+    font-family: var(--font-display); font-weight: 400;
+  }
+  .expense-row.total .expense-name,
+  .expense-row.savings-row .expense-name {
+    font-weight: 700; font-size: 13px;
+  }
+  .expense-row.total .expense-name { color: var(--amber); }
+  .expense-row.savings-row .expense-name { color: var(--green); }
+
+  .expense-pct {
+    font-family: var(--font-mono); font-size: 9px;
+    color: var(--muted); margin-right: 12px; width: 32px; text-align: right;
+  }
+  .expense-amt {
+    font-family: var(--font-mono); font-size: 13px;
+    font-weight: 500; color: var(--text);
+    width: 68px; text-align: right;
+  }
+  .expense-row.total .expense-amt { color: var(--amber); }
+  .expense-row.savings-row .expense-amt { color: var(--green); }
+
+  /* bar fill behind row */
+  .expense-bar-bg {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: rgba(61,142,255,0.04);
+    transition: width 1s cubic-bezier(0.16,1,0.3,1);
+    pointer-events: none;
+  }
+
+  /* ── charts ── */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 18px 16px;
+    animation: fadeUp 0.6s 0.25s ease both;
+  }
+  .chart-title {
+    font-size: 11px; letter-spacing: 0.1em;
+    color: var(--muted); text-transform: uppercase;
+    font-family: var(--font-mono); margin-bottom: 14px;
+  }
+  .chart-wrap { position: relative; }
+
+  /* ── savings projection ── */
+  .projection-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+  .proj-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px 14px;
+    position: relative; overflow: hidden;
+  }
+  .proj-card::after {
+    content: '';
+    position: absolute; bottom: -20px; right: -20px;
+    width: 70px; height: 70px; border-radius: 50%;
+    background: rgba(0,229,160,0.06);
+  }
+  .proj-yr { font-family: var(--font-mono); font-size: 9px; color: var(--muted); margin-bottom: 6px; }
+  .proj-amt { font-size: 18px; font-weight: 700; color: var(--green); }
+  .proj-sub { font-size: 9px; color: var(--muted); font-family: var(--font-mono); margin-top: 3px; }
+
+  /* ── insights ── */
+  .insights {
+    display: flex; flex-direction: column; gap: 10px;
+    animation: fadeUp 0.6s 0.35s ease both;
+  }
+  .insight-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px 16px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .insight-icon {
+    font-size: 18px; flex-shrink: 0; margin-top: 1px;
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--surface2);
+    display: grid; place-items: center; font-size: 16px;
+  }
+  .insight-text { font-size: 12.5px; color: var(--light); line-height: 1.6; }
+  .insight-text b { color: var(--text); font-weight: 600; }
+
+  /* ── footer ── */
+  .footer {
+    text-align: center; padding: 24px 0 8px;
+    font-family: var(--font-mono); font-size: 9px;
+    color: var(--muted); letter-spacing: 0.12em;
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+
+  /* ── animations ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── donut centre text ── */
+  .donut-wrap { position: relative; }
+  .donut-centre {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center; pointer-events: none;
+  }
+  .donut-centre-label { font-family: var(--font-mono); font-size: 9px; color: var(--muted); }
+  .donut-centre-value { font-size: 16px; font-weight: 700; color: var(--text); margin-top: 2px; }
+
+  /* ── legend ── */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 6px 14px;
+    margin-top: 14px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 5px;
+    font-family: var(--font-mono); font-size: 9px; color: var(--muted);
+  }
+  .legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <span class="header-label">Personal Finance · May 2026</span>
+    <h1 class="header-title">Neil's Money<br>Dashboard</h1>
+    <span class="header-sub">Mumbai · ₹ INR</span>
+  </div>
+
+  <!-- KPI Strip -->
+  <div class="kpi-strip">
+    <div class="kpi salary">
+      <div class="kpi-label">Salary</div>
+      <div class="kpi-value">₹40.1k</div>
+      <div class="kpi-sub">Monthly</div>
+    </div>
+    <div class="kpi expenses">
+      <div class="kpi-label">Spent</div>
+      <div class="kpi-value">₹32.0k</div>
+      <div class="kpi-sub">79.7%</div>
+    </div>
+    <div class="kpi savings">
+      <div class="kpi-label">Saved</div>
+      <div class="kpi-value">₹8.1k</div>
+      <div class="kpi-sub">20.3%</div>
+    </div>
+  </div>
+
+  <!-- Expense Table -->
+  <div class="section-head">
+    <span class="section-head-label">Breakdown</span>
+    <div class="section-head-line"></div>
+  </div>
+
+  <div class="expense-table" id="expenseTable"></div>
+
+  <!-- Donut Chart -->
+  <div class="section-head" style="margin-top:28px">
+    <span class="section-head-label">Distribution</span>
+    <div class="section-head-line"></div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Where the money goes</div>
+    <div class="donut-wrap">
+      <canvas id="donutChart" height="220"></canvas>
+      <div class="donut-centre">
+        <div class="donut-centre-label">total</div>
+        <div class="donut-centre-value">₹31,970</div>
+      </div>
+    </div>
+    <div class="legend" id="donutLegend"></div>
+  </div>
+
+  <!-- Bar Chart -->
+  <div class="section-head" style="margin-top:20px">
+    <span class="section-head-label">Comparison</span>
+    <div class="section-head-line"></div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Expense by category (ranked)</div>
+    <div class="chart-wrap">
+      <canvas id="barChart" height="260"></canvas>
+    </div>
+  </div>
+
+  <!-- Savings Projection -->
+  <div class="section-head" style="margin-top:20px">
+    <span class="section-head-label">Projection</span>
+    <div class="section-head-line"></div>
+  </div>
+
+  <div class="projection-grid">
+    <div class="proj-card">
+      <div class="proj-yr">1 YEAR</div>
+      <div class="proj-amt">₹97,764</div>
+      <div class="proj-sub">at ₹8,147/mo</div>
+    </div>
+    <div class="proj-card">
+      <div class="proj-yr">3 YEARS</div>
+      <div class="proj-amt">₹2.93L</div>
+      <div class="proj-sub">at ₹8,147/mo</div>
+    </div>
+    <div class="proj-card">
+      <div class="proj-yr">5 YEARS</div>
+      <div class="proj-amt">₹4.89L</div>
+      <div class="proj-sub">at ₹8,147/mo</div>
+    </div>
+    <div class="proj-card">
+      <div class="proj-yr">10 YEARS</div>
+      <div class="proj-amt">₹9.78L</div>
+      <div class="proj-sub">no interest</div>
+    </div>
+  </div>
+
+  <!-- Insights -->
+  <div class="section-head" style="margin-top:24px">
+    <span class="section-head-label">Insights</span>
+    <div class="section-head-line"></div>
+  </div>
+
+  <div class="insights">
+    <div class="insight-card">
+      <div class="insight-icon">💡</div>
+      <div class="insight-text">Your <b>20.3% savings rate</b> is solid for early career in Mumbai. Most financial advisors suggest 20%+ as the target.</div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-icon">🏠</div>
+      <div class="insight-text"><b>Rent + Amma support</b> make up 71.9% of your spending. These are fixed commitments — optimise around them.</div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-icon">📈</div>
+      <div class="insight-text">Invest even <b>₹2,000–₹3,000/mo into SIPs</b> and watch it compound meaningfully over 7–10 years.</div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-icon">🛡️</div>
+      <div class="insight-text">Build an <b>emergency fund of ₹1.28–₹1.92L</b> (4–6 months of expenses) before aggressive investing.</div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-icon">💪</div>
+      <div class="insight-text">Your protein-focused grocery spend (Eggs, Protein Powder, Soya Chunks) is <b>well-structured for bulking</b> and budget-conscious.</div>
+    </div>
+  </div>
+
+  <div class="footer">GENERATED BY CLAUDE · PERSONAL USE ONLY</div>
+
+</div>
+
+<script>
+const expenses = [
+  { name: "Support for Amma", amt: 12000, color: "#FF5C7A" },
+  { name: "Rent",             amt: 11000, color: "#3D8EFF" },
+  { name: "Protein Powder",   amt:  2200, color: "#A78BFA" },
+  { name: "Office Food",      amt:  1760, color: "#FFB547" },
+  { name: "Cravings/Outside", amt:  1000, color: "#F97316" },
+  { name: "Eggs",             amt:  1050, color: "#FBBF24" },
+  { name: "Yoga Bars",        amt:   760, color: "#34D399" },
+  { name: "Metro",            amt:   700, color: "#22D3EE" },
+  { name: "Soya Chunks",      amt:   600, color: "#60A5FA" },
+  { name: "Milk",             amt:   500, color: "#C084FC" },
+  { name: "Curd",             amt:   250, color: "#FB7185" },
+  { name: "Rice",             amt:   150, color: "#00E5A0" },
+];
+
+const total = 31970;
+
+// ── Build expense table ────────────────────────────────────────────────────
+const tbl = document.getElementById('expenseTable');
+expenses.forEach(e => {
+  const pct = (e.amt / total * 100).toFixed(1);
+  const row = document.createElement('div');
+  row.className = 'expense-row';
+  row.innerHTML = `
+    <div class="expense-bar-bg" style="width:0%" data-pct="${(e.amt/total*100).toFixed(1)}"></div>
+    <div class="expense-dot" style="background:${e.color}"></div>
+    <div class="expense-name">${e.name}</div>
+    <div class="expense-pct">${pct}%</div>
+    <div class="expense-amt">₹${e.amt.toLocaleString('en-IN')}</div>
+  `;
+  tbl.appendChild(row);
+});
+
+// total row
+const totRow = document.createElement('div');
+totRow.className = 'expense-row total';
+totRow.innerHTML = `
+  <div class="expense-dot" style="background:transparent"></div>
+  <div class="expense-name">TOTAL EXPENSES</div>
+  <div class="expense-pct">100%</div>
+  <div class="expense-amt">₹31,970</div>
+`;
+tbl.appendChild(totRow);
+
+// savings row
+const savRow = document.createElement('div');
+savRow.className = 'expense-row savings-row';
+savRow.innerHTML = `
+  <div class="expense-dot" style="background:#00E5A0"></div>
+  <div class="expense-name">MONTHLY SAVINGS</div>
+  <div class="expense-pct">20.3%</div>
+  <div class="expense-amt">₹8,147</div>
+`;
+tbl.appendChild(savRow);
+
+// animate bar fills
+setTimeout(() => {
+  document.querySelectorAll('.expense-bar-bg').forEach(el => {
+    el.style.width = el.dataset.pct + '%';
+  });
+}, 300);
+
+// ── Donut chart ────────────────────────────────────────────────────────────
+const donutCtx = document.getElementById('donutChart').getContext('2d');
+new Chart(donutCtx, {
+  type: 'doughnut',
+  data: {
+    labels: expenses.map(e => e.name),
+    datasets: [{
+      data: expenses.map(e => e.amt),
+      backgroundColor: expenses.map(e => e.color),
+      borderColor: '#0E1220',
+      borderWidth: 3,
+      hoverOffset: 8,
+    }]
+  },
+  options: {
+    cutout: '68%',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#141826',
+        titleColor: '#EEF0F8',
+        bodyColor: '#9DA3BE',
+        borderColor: '#1E2438',
+        borderWidth: 1,
+        padding: 10,
+        callbacks: {
+          label: ctx => ` ₹${ctx.parsed.toLocaleString('en-IN')}  (${(ctx.parsed/total*100).toFixed(1)}%)`
+        }
+      }
+    },
+    animation: { animateRotate: true, duration: 1200, easing: 'easeInOutQuart' },
+  }
+});
+
+// legend
+const legendEl = document.getElementById('donutLegend');
+expenses.forEach(e => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.innerHTML = `<div class="legend-dot" style="background:${e.color}"></div>${e.name}`;
+  legendEl.appendChild(item);
+});
+
+// ── Bar chart ──────────────────────────────────────────────────────────────
+const sorted = [...expenses].sort((a,b) => b.amt - a.amt);
+const barCtx = document.getElementById('barChart').getContext('2d');
+new Chart(barCtx, {
+  type: 'bar',
+  data: {
+    labels: sorted.map(e => e.name.length > 14 ? e.name.slice(0,13)+'…' : e.name),
+    datasets: [{
+      data: sorted.map(e => e.amt),
+      backgroundColor: sorted.map(e => e.color + 'CC'),
+      borderColor:     sorted.map(e => e.color),
+      borderWidth: 1,
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#141826',
+        titleColor: '#EEF0F8',
+        bodyColor: '#9DA3BE',
+        borderColor: '#1E2438',
+        borderWidth: 1,
+        callbacks: {
+          label: ctx => ` ₹${ctx.parsed.x.toLocaleString('en-IN')}`
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: '#1E2438' },
+        ticks: { color: '#5A607A', font: { family: 'DM Mono', size: 9 },
+          callback: v => '₹' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) },
+        border: { color: '#1E2438' }
+      },
+      y: {
+        grid: { display: false },
+        ticks: { color: '#9DA3BE', font: { family: 'DM Mono', size: 9.5 } },
+        border: { color: '#1E2438' }
+      }
+    },
+    animation: { duration: 1000, easing: 'easeInOutQuart' }
+  }
+});
+</script>
+</body>
+</html>
